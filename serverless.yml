@@ -1,0 +1,106 @@
+service: calendar-x-service
+frameworkVersion: '3'
+
+plugins:
+  - serverless-dotenv-plugin
+  - serverless-esbuild
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: us-east-1
+  lambdaHashingVersion: '20201221'
+  stage: ${env:STAGE, 'dev'}
+  environment:
+    DYNAMODB_TABLE: ${self:service}-table-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+resources:
+  Resources:
+    CalendarXTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: "${self:provider.environment.DYNAMODB_TABLE}"
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+          - AttributeName: sk
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+          - AttributeName: sk
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+functions:
+  createEvent:
+    handler: handlers.createEvent
+    events:
+      - http:
+          path: /events
+          method: POST
+  getEvents:
+    handler: handlers.getEvents
+    events:
+      - http:
+          path: /events
+          method: GET
+  getEvent:
+    handler: handlers.getEvent
+    events:
+      - http:
+          path: /events/{id}
+          method: GET
+  updateEvent:
+    handler: handlers.updateEvent
+    events:
+      - http:
+          path: /events/{id}
+          method: PUT
+  deleteEvent:
+    handler: handlers.deleteEvent
+    events:
+      - http:
+          path: /events/{id}
+          method: DELETE
+  createEventType:
+    handler: handlers.createEventType
+    events:
+      - http:
+          path: /event-types
+          method: POST
+  getEventTypes:
+    handler: handlers.getEventTypes
+    events:
+      - http:
+          path: /event-types
+          method: GET
+  getEventType:
+    handler: handlers.getEventType
+    events:
+      - http:
+          path: /event-types/{id}
+          method: GET
+  updateEventType:
+    handler: handlers.updateEventType
+    events:
+      - http:
+          path: /event-types/{id}
+          method: PUT
+  deleteEventType:
+    handler: handlers.deleteEventType
+    events:
+      - http:
+          path: /event-types/{id}
+          method: DELETE
+          
+          
