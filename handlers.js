@@ -10,7 +10,6 @@ export const createEvent = async  ( ) => {
         sk: v1(),
       }
     };
-    console.log(params.Item.sk)
     try { 
       await dynamoDb.put(params).promise();
     } catch (error) {
@@ -31,14 +30,22 @@ export const getEvents = async () => {
             pk: 'EVENT'
         }
     };
-    let event;
+    let events;
     try {
-        event = await dynamoDb.scan(params).promise();
+        events = await dynamoDb.scan(params).promise();
     } catch (e) {
         return 'error!';
     }
-    return eventReviews.Items;
+    return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Credentials': true,
+        },
+        body: JSON.stringify(events.Items),
+      };
 };
+
 export const getEventTypes = async () => {
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
