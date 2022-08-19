@@ -46,15 +46,23 @@ export const getEvents = async () => {
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
         TableName: process.env.DYNAMODB_TABLE,
-        Key: {
-            pk: 'Event'
+        KeyConditionExpression   : "pk = :pk",
+        ExpressionAttributeValues: {
+          ":pk": 'Event'
         }
     };
     let events;
     try {
         events = await dynamoDb.query(params).promise();
     } catch (e) {
-        return 'error!';
+        return {
+            statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
+            body: e.message,
+        };  
     }
     return {
         statusCode: 200,
@@ -67,7 +75,6 @@ export const getEvents = async () => {
 };
 
 export const getEventTypes = async () => {
-    console.log('hello')
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
         TableName: process.env.DYNAMODB_TABLE,
@@ -77,12 +84,9 @@ export const getEventTypes = async () => {
         }
     };
     let eventTypes;
-    console.log('poop0')
     try {
-        console.log('poop1')
         eventTypes = await dynamoDb.query(params).promise();
     } catch (e) {
-        console.log('e', e)
         return {
             statusCode: 500,
             headers: {
