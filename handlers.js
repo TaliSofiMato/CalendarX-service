@@ -1,33 +1,49 @@
 import { v1 } from 'uuid'
 import { DynamoDB } from 'aws-sdk'
 
-export const createEvent = async () => {
+export const createEvent = async (e) => {
+    let data = JSON.parse(e.body)
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
         TableName: process.env.DYNAMODB_TABLE,
         Item: {
             pk: 'Event',
             sk: v1(),
+            data: data
         }
     };
     try {
         await dynamoDb.put(params).promise();
-    } catch (error) {
-        console.error(error); // eslint-disable-line
-        throw error;
+    } catch (e) {
+        return {
+            statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
+            body: e.message,
+        };  
     }
     return {
         statusCode: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Credentials': true,
+        },
         body: JSON.stringify({ message: 'Event created successfully.' }),
     };
 };
-export const createEventType = async () => {
+export const createEventType = async (e) => {
+    console.log(e.body)
+
+    const data = e.body
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
         TableName: process.env.DYNAMODB_TABLE,
         Item: {
             pk: 'Event-Type',
             sk: v1(),
+            data: data
         }
     };
     try {
@@ -38,6 +54,10 @@ export const createEventType = async () => {
     }
     return {
         statusCode: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Credentials': true,
+        },
         body: JSON.stringify({ message: 'Event Type created successfully.' }),
     };
 };
@@ -110,21 +130,48 @@ export const getEventTypes = async () => {
 };
 
 export const getEvent = async (id) => {
+    console.log('helo1')
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
         TableName: process.env.DYNAMODB_TABLE,
-        Key: {
-            pk: 'EVENT',
-            sk: id
-        }
+        KeyConditionExpression   : "#pk = :pk and #sk = :sk",
+        ExpressionAttributeNames: {
+            "#pk": 'pk',
+            "#sk": 'sk'
+        },
+        ExpressionAttributeValues: {
+          ":pk": 'Event',
+          ":sk": id
+        },
+        // Key: {
+        //     pk: 'Event',
+        //     sk: id
+        // }
     };
+    console.log('helo2')
     let event;
     try {
-        event = await dynamoDb.scan(params).promise();
+        event = await dynamoDb.query(params).promise();
     } catch (e) {
-        return 'error!';
+        return {
+            statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
+            body: e.message,
+        };  
     }
-    return event.Items;
+    console.log(event.Items)
+    console.log(event)
+    return {
+        statusCode: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Credentials': true,
+        },
+        body: JSON.stringify(event.Items),
+    };    
 };
 export const getEventType = async (id) => {
     const dynamoDb = new DynamoDB.DocumentClient();
