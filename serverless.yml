@@ -72,6 +72,7 @@ functions:
       - http:
           path: /events/{id}
           method: DELETE
+          cors: true
   createEventType:
     handler: handlers.createEventType
     events:

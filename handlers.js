@@ -34,8 +34,6 @@ export const createEvent = async (e) => {
     };
 };
 export const createEventType = async (e) => {
-    console.log(e.body)
-
     const data = e.body
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
@@ -115,9 +113,7 @@ export const getEventTypes = async () => {
             },
             body: e.message,
         };  
-    }
-    console.log('event types:', eventTypes)
-    
+    }    
 
     return {
         statusCode: 200,
@@ -130,7 +126,6 @@ export const getEventTypes = async () => {
 };
 
 export const getEvent = async (id) => {
-    console.log('helo1')
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
         TableName: process.env.DYNAMODB_TABLE,
@@ -143,12 +138,7 @@ export const getEvent = async (id) => {
           ":pk": 'Event',
           ":sk": id
         },
-        // Key: {
-        //     pk: 'Event',
-        //     sk: id
-        // }
     };
-    console.log('helo2')
     let event;
     try {
         event = await dynamoDb.query(params).promise();
@@ -162,8 +152,6 @@ export const getEvent = async (id) => {
             body: e.message,
         };  
     }
-    console.log(event.Items)
-    console.log(event)
     return {
         statusCode: 200,
         headers: {
@@ -238,8 +226,23 @@ export const deleteEvent = async (awsEvent) => {
     try {
         await dynamoDb.delete(params).promise();
     } catch (e) {
-        console.log('error!', e); // eslint-disable-line
-    }
+        return {
+            statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
+            body: e.message,
+        };  
+    } 
+    return {
+        statusCode: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Credentials': true,
+        },
+        body: JSON.stringify({ message: 'Event deleted successfully.' }),
+    };   
 };
 export const deleteEventType = async (awsEvent) => {
     const dynamoDb = new DynamoDB.DocumentClient();
