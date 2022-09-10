@@ -12,6 +12,21 @@ provider:
   stage: ${env:STAGE, 'dev'}
   environment:
     DYNAMODB_TABLE: ${self:service}-table-${opt:stage, self:provider.stage}
+  httpApi: 
+    cors: true
+    authorizers: 
+      calendar-x-authorizer: 
+        identitySource: $request.header.Authorization
+        issuerUrl: 
+          Fn::Join: 
+            - ""
+            -
+              - https://cognito-idp.
+              - ${self:provider.region}
+              - .amazonaws.com/
+              - Ref: CalendarXUserPool
+        audience: 
+          - Ref: CalendarXUserPoolClient
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -21,13 +36,121 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+      Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}
+functions:
+  createEvent:
+    handler: handlers.createEvent
+    events:
+      - httpApi:
+          path: /events
+          method: POST
+          authorizer: calendar-x-authorizer
+  getEvents:
+    handler: handlers.getEvents
+    events:
+      - httpApi:
+          path: /events
+          method: GET
+          authorizer: calendar-x-authorizer
+  getEvent:
+    handler: handlers.getEvent
+    events:
+      - httpApi:
+          path: /events/{id}
+          method: GET
+          authorizer: calendar-x-authorizer
+  updateEvent:
+    handler: handlers.updateEvent
+    events:
+      - httpApi:
+          path: /events/{id}
+          method: PUT
+          authorizer: calendar-x-authorizer
+  deleteEvent:
+    handler: handlers.deleteEvent
+    events:
+      - httpApi:
+          path: /events/{id}
+          method: DELETE
+          authorizer: calendar-x-authorizer
+  createEventType:
+    handler: handlers.createEventType
+    events:
+      - httpApi:
+          path: /event-types
+          method: POST
+          authorizer: calendar-x-authorizer
+  getEventTypes:
+    handler: handlers.getEventTypes
+    events:
+      - httpApi:
+          path: /event-types
+          method: GET
+          authorizer: calendar-x-authorizer
+  getEventType:
+    handler: handlers.getEventType
+    events:
+      - httpApi:
+          path: /event-types/{id}
+          method: GET
+          authorizer: calendar-x-authorizer
+  updateEventType:
+    handler: handlers.updateEventType
+    events:
+      - httpApi:
+          path: /event-types/{id}
+          method: PUT
+          authorizer: calendar-x-authorizer
+  deleteEventType:
+    handler: handlers.deleteEventType
+    events:
+      - httpApi:
+          path: /event-types/{id}
+          method: DELETE
+          authorizer: calendar-x-authorizer
 resources:
   Resources:
+    CalendarXUserPool: 
+      Type: AWS::Cognito::UserPool
+      Properties: 
+        UserPoolName: ${self:service}-user-pool-${self:provider.stage}
+        UsernameAttributes: 
+          - email
+        AutoVerifiedAttributes: 
+          - email
+    CalendarXUserPoolClient: 
+      Type: AWS::Cognito::UserPoolClient
+      Properties: 
+        ClientName: ${self:service}-user-pool-${self:provider.stage}
+        AllowedOAuthFlows: 
+          - implicit
+        AllowedOAuthFlowsUserPoolClient: true
+        AllowedOAuthScopes: 
+          - phone
+          - email
+          - openid
+          - profile
+          - aws.cognito.signin.user.admin
+        UserPoolId: 
+          Ref: CalendarXUserPool
+        CallbackURLs: 
+          - https://localhost:3000
+        ExplicitAuthFlows: 
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        GenerateSecret: false
+        SupportedIdentityProviders: 
+          - COGNITO
+    CalendarXUserPoolDomain: 
+      Type: AWS::Cognito::UserPoolDomain
+      Properties: 
+        UserPoolId: 
+          Ref: CalendarXUserPool
+        Domain: ${self:service}-user-pool-domain-${self:custom.stage.${self:provider.stage}, self:provider.stage}
     CalendarXTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: "${self:provider.environment.DYNAMODB_TABLE}"
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
         AttributeDefinitions:
           - AttributeName: pk
             AttributeType: S
@@ -41,67 +164,3 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-functions:
-  createEvent:
-    handler: handlers.createEvent
-    events:
-      - http:
-          path: /events
-          method: POST
-  getEvents:
-    handler: handlers.getEvents
-    events:
-      - http:
-          path: /events
-          method: GET
-  getEvent:
-    handler: handlers.getEvent
-    events:
-      - http:
-          path: /events/{id}
-          method: GET
-  updateEvent:
-    handler: handlers.updateEvent
-    events:
-      - http:
-          path: /events/{id}
-          method: PUT
-  deleteEvent:
-    handler: handlers.deleteEvent
-    events:
-      - http:
-          path: /events/{id}
-          method: DELETE
-          cors: true
-  createEventType:
-    handler: handlers.createEventType
-    events:
-      - http:
-          path: /event-types
-          method: POST
-  getEventTypes:
-    handler: handlers.getEventTypes
-    events:
-      - http:
-          path: /event-types
-          method: GET
-  getEventType:
-    handler: handlers.getEventType
-    events:
-      - http:
-          path: /event-types/{id}
-          method: GET
-  updateEventType:
-    handler: handlers.updateEventType
-    events:
-      - http:
-          path: /event-types/{id}
-          method: PUT
-  deleteEventType:
-    handler: handlers.deleteEventType
-    events:
-      - http:
-          path: /event-types/{id}
-          method: DELETE
-          
-          

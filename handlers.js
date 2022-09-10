@@ -2,12 +2,13 @@ import { v1 } from 'uuid'
 import { DynamoDB } from 'aws-sdk'
 
 export const createEvent = async (e) => {
+    const cognitoUser = e.requestContext?.authorizer?.jwt?.claims?.username
     let data = JSON.parse(e.body)
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
         TableName: process.env.DYNAMODB_TABLE,
         Item: {
-            pk: 'Event',
+            pk: `EVENT#${cognitoUser}`,
             sk: v1(),
             data: data
         }
@@ -34,12 +35,13 @@ export const createEvent = async (e) => {
     };
 };
 export const createEventType = async (e) => {
-    const data = e.body
+    const cognitoUser = e.requestContext?.authorizer?.jwt?.claims?.username
+    const data = JSON.parse(e.body)
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
         TableName: process.env.DYNAMODB_TABLE,
         Item: {
-            pk: 'Event-Type',
+            pk: `EVENTTYPE#${cognitoUser}`,
             sk: v1(),
             data: data
         }
@@ -60,13 +62,14 @@ export const createEventType = async (e) => {
     };
 };
 
-export const getEvents = async () => {
+export const getEvents = async (e, b) => {
+    const cognitoUser = e.requestContext?.authorizer?.jwt?.claims?.username
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
         TableName: process.env.DYNAMODB_TABLE,
         KeyConditionExpression   : "pk = :pk",
         ExpressionAttributeValues: {
-          ":pk": 'Event'
+          ":pk": `EVENT#${cognitoUser}`
         }
     };
     let events;
@@ -92,13 +95,14 @@ export const getEvents = async () => {
     };
 };
 
-export const getEventTypes = async () => {
+export const getEventTypes = async (e) => {
+    const cognitoUser = e.requestContext?.authorizer?.jwt?.claims?.username
     const dynamoDb = new DynamoDB.DocumentClient();
     const params = {
         TableName: process.env.DYNAMODB_TABLE,
         KeyConditionExpression   : "pk = :pk",
         ExpressionAttributeValues: {
-          ":pk": 'Event-Type'
+          ":pk": `EVENTTYPE#${cognitoUser}`
         }
     };
     let eventTypes;
@@ -109,7 +113,7 @@ export const getEventTypes = async () => {
             statusCode: 500,
             headers: {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Credentials': true,
+                'Access-Control-Allow-Credentials': true
             },
             body: e.message,
         };  
@@ -135,7 +139,7 @@ export const getEvent = async (id) => {
             "#sk": 'sk'
         },
         ExpressionAttributeValues: {
-          ":pk": 'Event',
+          ":pk": 'EVENT',
           ":sk": id
         },
     };
@@ -178,8 +182,6 @@ export const getEventType = async (id) => {
     }
     return eventType.Items;
 };
-
-
 export const putEvent = async (data) => {
     const dynamoDb = new DynamoDB.DocumentClient();
     const timestamp = new Date().getTime();
